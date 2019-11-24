@@ -1826,6 +1826,16 @@ static void make_nav_policy_decision(id self, SEL cmd, id webView, id response,
   }
 }
 
+static void wk_webview_didStartProvisionalNavigation(id self, SEL cmd, id webView, id navigation) {
+  // https://developer.apple.com/documentation/webkit/wknavigationdelegate/1455621-webview?language=objc
+  webview_print_log("at wk_webview_didStartProvisionalNavigation\n");
+}
+
+static void wk_webview_didFinishNavigation(id self, SEL cmd, id webView, id navigation) {
+  // https://developer.apple.com/documentation/webkit/wknavigationdelegate/1455629-webview?language=objc
+  webview_print_log("at wk_webview_didFinishNavigation\n");
+}
+
 WEBVIEW_API int webview_init(struct webview *w) {
   w->priv.pool = objc_msgSend((id)objc_getClass("NSAutoreleasePool"),
                               sel_registerName("new"));
@@ -1979,11 +1989,35 @@ WEBVIEW_API int webview_init(struct webview *w) {
       objc_getClass("NSObject"), "__WKNavigationDelegate", 0);
   class_addProtocol(__WKNavigationDelegate,
                     objc_getProtocol("WKNavigationDelegate"));
+  // class_addMethod
+  // https://developer.apple.com/documentation/objectivec/1418901-class_addmethod?language=objc
+  //   the second and third characters must be “@:” (the first character is the return type). 
+  //
+  //   https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100
+  //     v : void
+  //     @ : An object (whether statically typed or typed id)
+  //     ? : An unknown type (among other things, this code is used for function pointers)
+  //
+  // https://developer.apple.com/documentation/webkit/wknavigationdelegate/1455643-webview?language=objc
+  // - (void)webView:(WKWebView *)webView 
+  //   decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse 
+  //   decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler;
   class_addMethod(
       __WKNavigationDelegate,
       sel_registerName(
           "webView:decidePolicyForNavigationResponse:decisionHandler:"),
       (IMP)make_nav_policy_decision, "v@:@@?");
+  class_addMethod(
+      __WKNavigationDelegate,
+      sel_registerName(
+          "webView:didStartProvisionalNavigation:"),
+      (IMP)wk_webview_didStartProvisionalNavigation, "v@:@@");
+  class_addMethod(
+      __WKNavigationDelegate,
+      sel_registerName(
+          "webView:didFinishNavigation:"),
+      (IMP)wk_webview_didFinishNavigation, "v@:@@");
+
   objc_registerClassPair(__WKNavigationDelegate);
   id navDel = objc_msgSend((id)__WKNavigationDelegate, sel_registerName("new"));
 
