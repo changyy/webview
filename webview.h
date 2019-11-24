@@ -158,6 +158,7 @@ WEBVIEW_API int webview_loop(struct webview *w, int blocking);
 WEBVIEW_API int webview_eval(struct webview *w, const char *js);
 WEBVIEW_API int webview_inject_css(struct webview *w, const char *css);
 WEBVIEW_API void webview_set_title(struct webview *w, const char *title);
+WEBVIEW_API void webview_set_user_agent(struct webview *w, const char *user_agent);
 WEBVIEW_API void webview_set_fullscreen(struct webview *w, int fullscreen);
 WEBVIEW_API void webview_set_color(struct webview *w, uint8_t r, uint8_t g,
                                    uint8_t b, uint8_t a);
@@ -354,6 +355,10 @@ WEBVIEW_API int webview_loop(struct webview *w, int blocking) {
 
 WEBVIEW_API void webview_set_title(struct webview *w, const char *title) {
   gtk_window_set_title(GTK_WINDOW(w->priv.window), title);
+}
+
+WEBVIEW_API void webview_set_user_agent(struct webview *w, const char *user_agent) {
+  // https://webkitgtk.org/reference/webkit2gtk/unstable/WebKitSettings.html#webkit-settings-set-user-agent
 }
 
 WEBVIEW_API void webview_set_fullscreen(struct webview *w, int fullscreen) {
@@ -1435,6 +1440,9 @@ WEBVIEW_API void webview_set_title(struct webview *w, const char *title) {
   SetWindowText(w->priv.hwnd, title);
 }
 
+WEBVIEW_API void webview_set_user_agent(struct webview *w, const char *user_agent) {
+}
+
 WEBVIEW_API void webview_set_fullscreen(struct webview *w, int fullscreen) {
   if (w->priv.is_fullscreen == !!fullscreen) {
     return;
@@ -2106,6 +2114,12 @@ WEBVIEW_API int webview_eval(struct webview *w, const char *js) {
 WEBVIEW_API void webview_set_title(struct webview *w, const char *title) {
   objc_msgSend(w->priv.window, sel_registerName("setTitle"),
                get_nsstring(title));
+}
+
+WEBVIEW_API void webview_set_user_agent(struct webview *w, const char *user_agent) {
+  // https://developer.apple.com/documentation/webkit/wkwebview/1414950-customuseragent?language=objc
+  objc_msgSend(w->priv.webview, sel_registerName("setCustomUserAgent:"),
+               get_nsstring(user_agent));
 }
 
 WEBVIEW_API void webview_set_fullscreen(struct webview *w, int fullscreen) {
