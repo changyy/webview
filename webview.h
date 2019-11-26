@@ -1699,6 +1699,39 @@ static id get_nsstring(const char *c_str) {
                       sel_registerName("stringWithUTF8String:"), c_str);
 }
 
+static const char * get_utf8string(id nsString_object) {
+  return (const char *)objc_msgSend(nsString_object, sel_registerName("UTF8String"));
+}
+
+static const char * get_nsurl_url_utf8string(id nsURL_object) {
+  id absoluteString = objc_msgSend(nsURL_object, sel_registerName("absoluteString"));
+  return get_utf8string(absoluteString);
+}
+
+static const char * get_webview_current_url(id webView_object) {
+  return get_nsurl_url_utf8string(objc_msgSend(webView_object, sel_registerName("URL")));
+}
+
+static const char * get_url_from_nsURLResponse(id nsURLResponse_object) {
+  return get_nsurl_url_utf8string(objc_msgSend(nsURLResponse_object, sel_registerName("URL")));
+}
+
+static const char * get_mimetype_from_nsURLResponse(id nsURLResponse_object) {
+  return get_utf8string(objc_msgSend(nsURLResponse_object, sel_registerName("MIMEType")));
+}
+
+static const char * get_mimetype_from_wkNavigationResponse(id wkNavigationResponse_object) {
+  if (objc_msgSend(wkNavigationResponse_object, sel_registerName("canShowMIMEType")) == 0) {
+    return "application/octet-stream"; 
+  } else {
+    return get_mimetype_from_nsURLResponse(objc_msgSend(wkNavigationResponse_object, sel_registerName("response")));
+  }
+}
+
+static const char * get_url_from_wkNavigationResponse(id wkNavigationResponse_object) {
+  return get_url_from_nsURLResponse(objc_msgSend(wkNavigationResponse_object, sel_registerName("response")));
+}
+
 static id create_menu_item(id title, const char *action, const char *key) {
   id item =
       objc_msgSend((id)objc_getClass("NSMenuItem"), sel_registerName("alloc"));
@@ -1819,6 +1852,8 @@ static void download_failed(id self, SEL cmd, id download, id error) {
 
 static void make_nav_policy_decision(id self, SEL cmd, id webView, id response,
                                      void (^decisionHandler)(int)) {
+  //webview_print_log(get_mimetype_from_wkNavigationResponse(response));
+  //webview_print_log(get_url_from_wkNavigationResponse(response));
   if (objc_msgSend(response, sel_registerName("canShowMIMEType")) == 0) {
     decisionHandler(WKNavigationActionPolicyDownload);
   } else {
@@ -1828,12 +1863,14 @@ static void make_nav_policy_decision(id self, SEL cmd, id webView, id response,
 
 static void wk_webview_didStartProvisionalNavigation(id self, SEL cmd, id webView, id navigation) {
   // https://developer.apple.com/documentation/webkit/wknavigationdelegate/1455621-webview?language=objc
-  webview_print_log("at wk_webview_didStartProvisionalNavigation\n");
+  webview_print_log("at wk_webview_didStartProvisionalNavigation");
+  //id absoluteString = objc_msgSend(objc_msgSend(webView, sel_registerName("URL")), sel_registerName("absoluteString"));
+  webview_print_log( get_webview_current_url(webView) );
 }
 
 static void wk_webview_didFinishNavigation(id self, SEL cmd, id webView, id navigation) {
   // https://developer.apple.com/documentation/webkit/wknavigationdelegate/1455629-webview?language=objc
-  webview_print_log("at wk_webview_didFinishNavigation\n");
+  webview_print_log("at wk_webview_didFinishNavigation");
 }
 
 WEBVIEW_API int webview_init(struct webview *w) {
